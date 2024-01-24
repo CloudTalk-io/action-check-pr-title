@@ -83,7 +83,6 @@ export const run = async (context: Context) => {
 
   const skipIDs = getInput("jiraSkipCheck")?.split(",") || [];
   const ids = [...pullRequestTitle.matchAll(regex2)][0];
-  info(JSON.stringify(ids));
   if (ids.find((id: string) => skipIDs.includes(id.toLowerCase()))) {
     return;
   }
