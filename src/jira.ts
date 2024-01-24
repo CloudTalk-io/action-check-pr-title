@@ -3,7 +3,7 @@ type GetIssueParams = {
   expand?: string;
 };
 
-type Issue = {
+export type Issue = {
   id: string;
   key: string;
   fields: Fields;
@@ -15,6 +15,7 @@ type Fields = {
 
 type Issuetype = {
   subtask: boolean;
+  name: string;
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

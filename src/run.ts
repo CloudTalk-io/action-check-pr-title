@@ -2,13 +2,34 @@ import { info, setFailed, getInput, warning } from "@actions/core";
 import { Context } from "@actions/github/lib/context";
 import { Jira } from "./jira";
 
-export const containsParentTaskID = async (ids: string[]): Promise<boolean> => {
+export const containsParentIssueID = async (ids: string[]): Promise<boolean> => {
   const jiraUrl = getInput("jiraUrl");
   if (!jiraUrl) {
-    warning(`Not checking parent task because of missing JIRA URL`);
+    warning(`Not checking parent issue because of missing JIRA URL`);
     return true;
   }
-  if (!ids) {
+
+  const jira = new Jira(
+    jiraUrl,
+    getInput("jiraUsername"),
+    getInput("jiraToken")
+  );
+
+  for (const id of ids) {
+    const issue = await jira.getIssue(id, { fields: "issuetype" });
+    if (issue.fields?.issuetype?.subtask === false) {
+      info(`Found parent issue ${id}`);
+      return true;
+    }
+  }
+
+  return false;
+};
+
+export const isIssueSpike = async (ids: string[]): Promise<boolean> => {
+  const jiraUrl = getInput("jiraUrl");
+  if (!jiraUrl) {
+    warning(`Not checking parent issue because of missing JIRA URL`);
     return false;
   }
 
@@ -18,19 +39,11 @@ export const containsParentTaskID = async (ids: string[]): Promise<boolean> => {
     getInput("jiraToken")
   );
 
-  const skipIDs = getInput("jiraSkipCheck").split(",");
-
   for (const id of ids) {
-    const issueID = id[0];
-    info(`Checking ID ${issueID}`);
-    if (skipIDs.includes(issueID.toLowerCase())) {
-      info(`Skipping ID ${issueID}`);
-      return true;
-    }
-
-    const issue = await jira.getIssue(issueID, { fields: "issuetype" });
-    if (issue.fields?.issuetype?.subtask === false) {
-      info(`Found parent task ${issueID}`);
+    const issue = await jira.getIssue(id, { fields: "issuetype" });
+    if (issue.fields?.issuetype?.subtask === false &&
+        issue.fields?.issuetype?.name === "Spike") {
+      info(`Found Spike issue ${id}`);
       return true;
     }
   }
@@ -61,18 +74,34 @@ export const run = async (context: Context) => {
     }
 
     setFailed(message);
+    return;
   }
 
   let flags = getInput("jiraIDFlags");
   flags = flags.includes("g") ? flags : flags + "g";
   const regex2 = RegExp(getInput("jiraIDRegexp"), flags);
 
+  const skipIDs = getInput("jiraSkipCheck")?.split(",") || [];
+  const ids = [...pullRequestTitle.matchAll(regex2)][0];
+  info(JSON.stringify(ids));
+  if (ids.find((id: string) => skipIDs.includes(id.toLowerCase()))) {
+    return;
+  }
+
   if (
     !pullRequestTitle ||
-    !(await containsParentTaskID([...pullRequestTitle.matchAll(regex2)]))
+    ids.length === 0 ||
+    !(await containsParentIssueID(ids))
   ) {
-    const message = `Pull Request title "${pullRequestTitle}" doesn't contain JIRA parent task ID
+    const message = `Pull Request title "${pullRequestTitle}" doesn't contain JIRA parent issue ID
 `;
     setFailed(message);
+    return;
+  }
+
+  if (await isIssueSpike(ids)) {
+    const message = `Pull Request title contains a Spike issue, which is not allowed`;
+    setFailed(message);
+    return;
   }
 };
