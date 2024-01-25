@@ -1,12 +1,12 @@
 import { info, setFailed, getInput, warning } from "@actions/core";
 import { Context } from "@actions/github/lib/context";
-import { Jira } from "./jira";
+import { Issue, Jira } from "./jira";
 
-export const containsParentIssueID = async (ids: string[]): Promise<boolean> => {
+const mapJiraIssues = async (ids: string[]): Promise<Issue[]> => {
   const jiraUrl = getInput("jiraUrl");
   if (!jiraUrl) {
     warning(`Not checking parent issue because of missing JIRA URL`);
-    return true;
+    return [];
   }
 
   const jira = new Jira(
@@ -15,40 +15,22 @@ export const containsParentIssueID = async (ids: string[]): Promise<boolean> => 
     getInput("jiraToken")
   );
 
+  const issues = [];
+
   for (const id of ids) {
     const issue = await jira.getIssue(id, { fields: "issuetype" });
-    if (issue.fields?.issuetype?.subtask === false) {
-      info(`Found parent issue ${id}`);
-      return true;
-    }
+    issues.push(issue);
   }
 
-  return false;
+  return issues;
 };
 
-export const isIssueSpike = async (ids: string[]): Promise<boolean> => {
-  const jiraUrl = getInput("jiraUrl");
-  if (!jiraUrl) {
-    warning(`Not checking parent issue because of missing JIRA URL`);
-    return false;
-  }
+const containsParentIssue = (issues: Issue[]): boolean => {
+    return !!issues.find(issue => !issue?.fields?.issuetype?.subtask);
+};
 
-  const jira = new Jira(
-    jiraUrl,
-    getInput("jiraUsername"),
-    getInput("jiraToken")
-  );
-
-  for (const id of ids) {
-    const issue = await jira.getIssue(id, { fields: "issuetype" });
-    if (issue.fields?.issuetype?.subtask === false &&
-        issue.fields?.issuetype?.name === "Spike") {
-      info(`Found Spike issue ${id}`);
-      return true;
-    }
-  }
-
-  return false;
+const containsSpikeIssue = (issues: Issue[]): boolean => {
+    return !!issues.find(issue => issue?.fields?.issuetype?.name === "Spike");
 };
 
 export const run = async (context: Context) => {
@@ -67,8 +49,7 @@ export const run = async (context: Context) => {
   const regex = RegExp(getInput("regexp"), getInput("flags"));
   const helpMessage = getInput("helpMessage");
   if (!regex.test(pullRequestTitle)) {
-    let message = `Pull Request title "${pullRequestTitle}" failed to pass match regexp - ${regex}
-`;
+    let message = `Pull Request title "${pullRequestTitle}" failed to pass match regexp - ${regex}\n`;
     if (helpMessage) {
       message = message.concat(helpMessage);
     }
@@ -87,20 +68,24 @@ export const run = async (context: Context) => {
     return;
   }
 
+  const message = `Pull Request title "${pullRequestTitle}" doesn't contain JIRA parent issue ID\n`;
+
   if (
     !pullRequestTitle ||
-    ids.length === 0 ||
-    !(await containsParentIssueID(ids))
+    ids.length === 0
   ) {
-    const message = `Pull Request title "${pullRequestTitle}" doesn't contain JIRA parent issue ID
-`;
     setFailed(message);
     return;
   }
 
-  if (await isIssueSpike(ids)) {
-    const message = `Pull Request title contains a Spike issue, which is not allowed`;
+  const issues = await mapJiraIssues(ids);
+  if (containsParentIssue(issues)) {
     setFailed(message);
+    return;
+  }
+  
+  if (containsSpikeIssue(issues)) {
+    setFailed(`Pull Request title contains a Spike issue, which is not allowed\n`);
     return;
   }
 };
