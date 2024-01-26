@@ -72,23 +72,27 @@ export class Jira {
       this.apiUrl +
       path +
       (params.query ? "?" + new URLSearchParams(params.query) : "");
-    return this.fetchRetry({
-      url,
-      method: method,
-      headers: headers,
-      body: (params.body ? { body: JSON.stringify(params.body) } : {}),
-    }, this.MAX_RETRIES);
+    return this.fetchRetry(
+      {
+        url,
+        method: method,
+        headers: headers,
+        body: params.body ? { body: JSON.stringify(params.body) } : {},
+      },
+      this.MAX_RETRIES
+    );
   }
 
   /**
    * fetch node.js method wrapped in retry mechanism for rate limiting
    */
-  private async fetchRetry(request: Request, counter: number): Promise<Response> {
-    const response = await fetch(
-      request.url,
-      { 
-        method: request.method,
-        headers: request.headers,
+  private async fetchRetry(
+    request: Request,
+    counter: number
+  ): Promise<Response> {
+    const response = await fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
       ...request.body,
     });
     if (response.status === StatusCodes.TOO_MANY_REQUESTS) {

@@ -19,15 +19,15 @@ const mapJiraIssues = async (ids: string[]): Promise<Issue[]> => {
 };
 
 const containsParentIssue = (issues: Issue[]): boolean => {
-    return !!issues.find(issue => issue?.fields?.issuetype?.subtask === false);
+  return !!issues.find((issue) => issue?.fields?.issuetype?.subtask === false);
 };
 
 const containsSpikeIssue = (issues: Issue[]): boolean => {
-    return !!issues.find(issue => issue?.fields?.issuetype?.name === "Spike");
+  return !!issues.find((issue) => issue?.fields?.issuetype?.name === "Spike");
 };
 
 const containsEpicIssue = (issues: Issue[]): boolean => {
-    return !!issues.find(issue => issue?.fields?.issuetype?.name === "Epic");
+  return !!issues.find((issue) => issue?.fields?.issuetype?.name === "Epic");
 };
 
 const parsePullRequestTitle = (title: string): string[] => {
@@ -50,7 +50,7 @@ export const run = async (context: Context) => {
 
   info(`Pull Request title: "${pullRequestTitle}"`);
 
-  // We first check if PR title format is valid 
+  // We first check if PR title format is valid
   const regex = RegExp(getInput("regexp"), getInput("flags"));
   const helpMessage = getInput("helpMessage");
   if (!regex.test(pullRequestTitle)) {
@@ -77,7 +77,7 @@ export const run = async (context: Context) => {
     setFailed(message);
     return;
   }
-  
+
   if (!getInput("jiraUrl")) {
     warning(`Not checking the issues because of missing JIRA URL`);
     return;
@@ -87,12 +87,16 @@ export const run = async (context: Context) => {
   if (!containsParentIssue(issues)) {
     setFailed(message);
   }
-  
+
   if (containsSpikeIssue(issues)) {
-    setFailed("Pull Request title contains a Spike issue, which is not allowed\n");
+    setFailed(
+      "Pull Request title contains a Spike issue, which is not allowed\n"
+    );
   }
 
   if (containsEpicIssue(issues)) {
-    setFailed("Pull Request title contains an Epic issue, which is not allowed\n");
+    setFailed(
+      "Pull Request title contains an Epic issue, which is not allowed\n"
+    );
   }
 };
