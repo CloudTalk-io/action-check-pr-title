@@ -145,9 +145,6 @@ const mapJiraIssues = (ids) => __awaiter(void 0, void 0, void 0, function* () {
 const containsParentIssue = (issues) => {
     return !!issues.find((issue) => { var _a, _b; return ((_b = (_a = issue === null || issue === void 0 ? void 0 : issue.fields) === null || _a === void 0 ? void 0 : _a.issuetype) === null || _b === void 0 ? void 0 : _b.subtask) === false; });
 };
-const containsSpikeIssue = (issues) => {
-    return !!issues.find((issue) => { var _a, _b; return ((_b = (_a = issue === null || issue === void 0 ? void 0 : issue.fields) === null || _a === void 0 ? void 0 : _a.issuetype) === null || _b === void 0 ? void 0 : _b.name) === "Spike"; });
-};
 const containsEpicIssue = (issues) => {
     return !!issues.find((issue) => { var _a, _b; return ((_b = (_a = issue === null || issue === void 0 ? void 0 : issue.fields) === null || _a === void 0 ? void 0 : _a.issuetype) === null || _b === void 0 ? void 0 : _b.name) === "Epic"; });
 };
@@ -197,9 +194,6 @@ const run = (context) => __awaiter(void 0, void 0, void 0, function* () {
     const issues = yield mapJiraIssues(issueIds);
     if (!containsParentIssue(issues)) {
         (0, core_1.setFailed)(message);
-    }
-    if (containsSpikeIssue(issues)) {
-        (0, core_1.setFailed)("Pull Request title contains a Spike issue, which is not allowed\n");
     }
     if (containsEpicIssue(issues)) {
         (0, core_1.setFailed)("Pull Request title contains an Epic issue, which is not allowed\n");

@@ -22,10 +22,6 @@ const containsParentIssue = (issues: Issue[]): boolean => {
   return !!issues.find((issue) => issue?.fields?.issuetype?.subtask === false);
 };
 
-const containsSpikeIssue = (issues: Issue[]): boolean => {
-  return !!issues.find((issue) => issue?.fields?.issuetype?.name === "Spike");
-};
-
 const containsEpicIssue = (issues: Issue[]): boolean => {
   return !!issues.find((issue) => issue?.fields?.issuetype?.name === "Epic");
 };
@@ -86,12 +82,6 @@ export const run = async (context: Context) => {
   const issues = await mapJiraIssues(issueIds);
   if (!containsParentIssue(issues)) {
     setFailed(message);
-  }
-
-  if (containsSpikeIssue(issues)) {
-    setFailed(
-      "Pull Request title contains a Spike issue, which is not allowed\n"
-    );
   }
 
   if (containsEpicIssue(issues)) {

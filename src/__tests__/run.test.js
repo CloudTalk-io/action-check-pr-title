@@ -118,11 +118,6 @@ describe("run", () => {
         success: true,
       },
       {
-        name: "Should fail on Spike issue",
-        title: "DEVEX-202 his is a pull request title",
-        success: false,
-      },
-      {
         name: "Should fail on Epic issue",
         title: "DEVEX-123 his is a pull request title",
         success: false,
